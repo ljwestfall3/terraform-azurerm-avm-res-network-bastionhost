@@ -7,7 +7,9 @@ To use this module in your Terraform configuration, you'll need to provide value
 
 ## Features
 
-The module supports the `Developer`, `Basic`, `Standard` and `Premium` SKU's for Azure Bastion.
+The module support the `Developer`, `Basic` and `Standard` SKU's for Azure Bastion.
+
+> NOTE: The `Premium` SKU is not currently supported by this module, but will be added in a future release.
 
 ## Example Usage
 
@@ -52,8 +54,6 @@ The following requirements are needed by this module:
 
 - <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) (>= 1.9, < 2.0)
 
-- <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.0)
-
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.10)
 
 - <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
@@ -64,8 +64,7 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azapi_resource.bastion](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
-- [azapi_resource.bastion_developer](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) (resource)
+- [azurerm_bastion_host.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/bastion_host) (resource)
 - [azurerm_management_lock.pip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
@@ -75,7 +74,6 @@ The following resources are used by this module:
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [azurerm_client_config.telemetry](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 - [azurerm_public_ip.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/public_ip) (data source)
-- [azurerm_subscription.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/subscription) (data source)
 - [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
@@ -184,18 +182,16 @@ Description: The IP configuration for the Azure Bastion Host.
 - `name` - The name of the IP configuration.
 - `subnet_id` - The ID of the subnet where the Azure Bastion Host will be deployed.
 - `create_public_ip` - Specifies whether a public IP address should be created by the module. if both `create_public_ip` and `public_ip_address_id` are set, the `public_ip_address_id` will be ignored.
-- `public_ip_address_name` - The Name of the public IP address to create. Will be ignored if `public_ip_address_id` is set.
 - `public_ip_address_id` - The ID of the public IP address associated with the Azure Bastion Host.
 
 Type:
 
 ```hcl
 object({
-    name                   = optional(string)
-    subnet_id              = string
-    create_public_ip       = optional(bool, true)
-    public_ip_address_name = optional(string, null)
-    public_ip_address_id   = optional(string, null)
+    name                 = optional(string)
+    subnet_id            = string
+    create_public_ip     = optional(bool, true)
+    public_ip_address_id = optional(string, null)
   })
 ```
 
@@ -234,14 +230,6 @@ object({
 ```
 
 Default: `null`
-
-### <a name="input_private_only_enabled"></a> [private\_only\_enabled](#input\_private\_only\_enabled)
-
-Description: Specifies whether the Azure Bastion Host is configured to be private only. This is a premium SKU feature.
-
-Type: `bool`
-
-Default: `false`
 
 ### <a name="input_role_assignments"></a> [role\_assignments](#input\_role\_assignments)
 
@@ -318,7 +306,7 @@ Default: `null`
 
 ### <a name="input_tunneling_enabled"></a> [tunneling\_enabled](#input\_tunneling\_enabled)
 
-Description: Specifies whether tunneling functionality is enabled for the Azure Bastion Host. (Native client support for SSH and RDP tunneling)
+Description: Specifies whether tunneling functionality is enabled for the Azure Bastion Host.
 
 Type: `bool`
 
