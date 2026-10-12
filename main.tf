@@ -2,7 +2,10 @@
 resource "azapi_resource" "bastion" {
   count = var.sku == "Developer" ? 0 : 1
 
-  type = "Microsoft.Network/bastionHosts@2024-05-01"
+  location  = var.location
+  name      = var.name
+  parent_id = var.parent_id
+  type      = "Microsoft.Network/bastionHosts@2024-05-01"
   body = {
     sku = {
       name = var.sku
@@ -32,14 +35,15 @@ resource "azapi_resource" "bastion" {
       scaleUnits = var.scale_units
     }
   }
-  location  = var.location
-  name      = var.name
-  parent_id = local.resource_group_id
+  create_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers   = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   replace_triggers_external_values = [
     var.sku
   ]
   response_export_values = ["properties.dnsName"]
   tags                   = var.tags
+  update_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   lifecycle {
     precondition {
@@ -52,7 +56,10 @@ resource "azapi_resource" "bastion" {
 resource "azapi_resource" "bastion_developer" {
   count = var.sku == "Developer" ? 1 : 0
 
-  type = "Microsoft.Network/bastionHosts@2024-05-01"
+  location  = var.location
+  name      = var.name
+  parent_id = var.parent_id
+  type      = "Microsoft.Network/bastionHosts@2024-05-01"
   body = {
     sku = {
       name = var.sku
@@ -63,11 +70,12 @@ resource "azapi_resource" "bastion_developer" {
       }
     }
   }
-  location               = var.location
-  name                   = var.name
-  parent_id              = local.resource_group_id
+  create_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  read_headers           = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   response_export_values = ["properties.dnsName"]
   tags                   = var.tags
+  update_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 }
 
 resource "azurerm_management_lock" "this" {
@@ -116,14 +124,20 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
 
 
 module "public_ip_address" {
-  count               = var.ip_configuration != null ? (var.ip_configuration.create_public_ip == true ? 1 : 0) : var.sku == "Developer" ? 0 : 1
-  source              = "git::https://avm.mirror.invalid/terraform-azurerm-avm-res-network-publicipaddress.git?ref=v0.2.0-local"
-  enable_telemetry    = var.enable_telemetry
-  resource_group_name = var.resource_group_name
-  name                = coalesce(var.ip_configuration.public_ip_address_name, "pip-${var.name}")
+  source  = "git::https://avm.mirror.invalid/terraform-azurerm-avm-res-network-publicipaddress.git?ref=v0.2.0-local"
+  count   = var.ip_configuration != null ? (var.ip_configuration.create_public_ip == true ? 1 : 0) : var.sku == "Developer" ? 0 : 1
+
   location            = var.location
+  name                = coalesce(var.ip_configuration.public_ip_address_name, "pip-${var.name}")
+  resource_group_name = split("/", var.parent_id)[4]
+  enable_telemetry    = var.enable_telemetry
   sku                 = "Standard"
-  zones               = var.zones
+  tags = var.ip_configuration.public_ip_tags != null ? (
+    var.ip_configuration.public_ip_merge_with_module_tags) ? merge(
+    var.tags, var.ip_configuration.public_ip_tags) : (
+    var.ip_configuration.public_ip_tags) : (
+  var.ip_configuration.public_ip_merge_with_module_tags) ? var.tags : {}
+  zones = [for zone in var.zones : parseint(zone, 10)]
 }
 
 resource "azurerm_management_lock" "pip" {
